@@ -1,6 +1,14 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { consoleStyle } from "./lib/console-style.js";
+import { existsSync, mkdirSync } from "node:fs";
+import { LOG_DIR, logToFile } from "./lib/log-to-file.js";
+import { config } from "./config.js";
+
+// Ensure the log directory exists
+if (!existsSync(LOG_DIR)) {
+  mkdirSync(LOG_DIR, { recursive: true });
+}
 
 const app = new Hono();
 
@@ -16,6 +24,7 @@ app.all("*", async (c) => {
       console.log("Path:", c.req.path);
       console.log("Received Webhook:", body);
     });
+    logToFile(body);
 
     return c.json({ message: "Webhook received on " + c.req.path });
   } catch (error) {
@@ -24,10 +33,9 @@ app.all("*", async (c) => {
   }
 });
 
-const port = 8400;
-console.log(`Server is running on http://localhost:${port}`);
+console.log(`Server is running on http://localhost:${config.port}`);
 
 serve({
   fetch: app.fetch,
-  port,
+  port: config.port,
 });
