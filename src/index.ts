@@ -17,14 +17,19 @@ let counter = 0;
 app.all("*", async (c) => {
   try {
     const body = await c.req.json(); // Parse JSON payload
+    const head = await c.req.header();
     consoleStyle.group("\n\n--- [WEBHOOK RECEIVED] ---", () => {
       console.log("--------------------------");
       console.log("Counter:", ++counter);
       console.log("Date:", new Date().toISOString());
       console.log("Path:", c.req.path);
-      console.log("Received Webhook:", body);
+      console.log("Received Webhook Header:", head);
+      console.log("Received Webhook Body:", body);
     });
-    logToFile(body);
+    logToFile({
+      header: head,
+      body,
+    });
 
     return c.json({ message: "Webhook received on " + c.req.path });
   } catch (error) {
