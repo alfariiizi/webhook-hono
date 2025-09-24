@@ -14,20 +14,40 @@ const app = new Hono();
 
 let counter = 0;
 
+// Explicitly allow OPTIONS (preflight) so clients don't get blocked
+app.options("*", (c) => {
+  return c.text("OK", 200);
+});
+
 app.all("*", async (c) => {
   try {
-    const body = await c.req.json(); // Parse JSON payload
-    const head = await c.req.header();
+    let body = {};
+    if (c.req.method !== "GET" && c.req.method !== "DELETE") {
+      try {
+        body = await c.req.json();
+      } catch {
+        // ignore empty or invalid JSON
+        body = {};
+      }
+    }
+
+    const headers = c.req.raw.headers; // raw headers are iterable
+    const headerObj: Record<string, string> = {};
+    for (const [key, value] of headers.entries()) {
+      headerObj[key] = value;
+    }
+
     consoleStyle.group("\n\n--- [WEBHOOK RECEIVED] ---", () => {
       console.log("--------------------------");
       console.log("Counter:", ++counter);
       console.log("Date:", new Date().toISOString());
       console.log("Path:", c.req.path);
-      console.log("Received Webhook Header:", head);
+      console.log("Received Webhook Header:", headerObj);
       console.log("Received Webhook Body:", body);
     });
+
     logToFile({
-      header: head,
+      header: headerObj,
       body,
     });
 
